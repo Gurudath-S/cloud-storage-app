@@ -24,7 +24,7 @@ def list_files_in_s3(bucket_name):
         files = [obj["Key"] for obj in response.get("Contents", [])]
         return files
     except NoCredentialsError:
-        raise HTTPException(status_code=500, detail="AWS credentials not available")
+        raise HTTPException(status_code=401, detail="AWS credentials not available")
 
 # Function to download a file from S3
 def download_file_from_s3(bucket_name, object_name):
@@ -32,7 +32,14 @@ def download_file_from_s3(bucket_name, object_name):
         response = s3.get_object(Bucket=bucket_name, Key=object_name)
         return StreamingResponse(content=response["Body"].iter_lines(), media_type="application/octet-stream")
     except NoCredentialsError:
-        raise HTTPException(status_code=500, detail="AWS credentials not available")
+        raise HTTPException(status_code=401, detail="AWS credentials not available")
+
+#function to delete a file from S3
+def delete_file_from_s3(bucket_name, object_name):
+    try:
+        response = s3.delete_object(Bucket=bucket_name, Key=object_name)
+    except NoCredentialsError:
+        raise HTTPException(status_code=401, detail= "AWS credentials not available")
 
 
 # Upload a file to S3
@@ -53,6 +60,10 @@ async def list_files():
 @app.get("/downloadfile/{file_path:path}")
 async def download_file(file_path: str):
     return download_file_from_s3(aws_bucket_name, file_path)
+
+@app.delete("/deletefile/{file_path:path}")
+async def delete_file(file_path: str):
+    return delete_file_from_s3(aws_bucket_name, file_path)
 
 if __name__ == "__main__":
     import uvicorn
